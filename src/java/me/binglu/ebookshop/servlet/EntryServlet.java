@@ -8,8 +8,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.logging.*;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import javax.sql.DataSource;
 
 /**
  *
@@ -17,23 +20,20 @@ import javax.servlet.http.*;
  */
 public class EntryServlet extends HttpServlet {
 
-    private String databaseURL, username, password;
+    private DataSource pool;    //DB connection pool
     
     @Override
     public void init(ServletConfig config) throws ServletException{
-      
-      // Retrieve the database-URL, username, password from webapp init parameters
-      super.init(config);
-      ServletContext context = config.getServletContext();
-      databaseURL = context.getInitParameter("databaseURL");
-      username = context.getInitParameter("username");
-      password = context.getInitParameter("password");
-      try{
-          Class.forName("com.mysql.jdbc.Driver").newInstance();
-      }catch(ClassNotFoundException e){
-          System.out.println("Where is your jdbc driver?");
-      }catch(Exception ex){
-          ex.printStackTrace();
+      try {
+         // Create a JNDI Initial context to be able to lookup the DataSource
+         InitialContext ctx = new InitialContext();
+         // Lookup the DataSource, which will be backed by a pool
+         //   that the application server provides.
+         pool = (DataSource)ctx.lookup("java:comp/env/jdbc/mysql_ebookshop");
+         if (pool == null)
+            throw new ServletException("Unknown DataSource 'jdbc/mysql_ebookshop'");
+      } catch (NamingException ex) {
+         Logger.getLogger(EntryServlet.class.getName()).log(Level.SEVERE, null, ex);
       }
     }
     
@@ -87,7 +87,8 @@ public class EntryServlet extends HttpServlet {
       Connection conn = null;
       Statement stmt = null;
       try {
-         conn = DriverManager.getConnection(databaseURL, username, password);
+         //get a connection from the pool 
+         conn = pool.getConnection();
          stmt = conn.createStatement();
          String sqlStr = "SELECT DISTINCT author FROM books WHERE quantity > 0";
          // System.out.println(sqlStr);  // for debugging
@@ -125,7 +126,7 @@ public class EntryServlet extends HttpServlet {
          out.close();
          try {
             if (stmt != null) stmt.close();
-            if (conn != null) conn.close();
+            if (conn != null) conn.close(); //return the connection to the pool
          } catch (SQLException ex) {
             Logger.getLogger(EntryServlet.class.getName()).log(Level.SEVERE, null, ex);
          }

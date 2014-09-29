@@ -8,9 +8,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.logging.*;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import javax.sql.DataSource;
 
 /**
  *
@@ -18,15 +21,21 @@ import javax.servlet.http.*;
  */
 public class QueryServlet extends HttpServlet {
 
-    private String databaseURL, username, password;
+    private DataSource pool;    //DB connection pool
     
     @Override
     public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-        ServletContext context = config.getServletContext();
-        databaseURL = context.getInitParameter("databaseURL");
-        username = context.getInitParameter("username");
-        password = context.getInitParameter("password");
+      try {
+         // Create a JNDI Initial context to be able to lookup the DataSource
+         InitialContext ctx = new InitialContext();
+         // Lookup the DataSource, which will be backed by a pool
+         //   that the application server provides.
+         pool = (DataSource)ctx.lookup("java:comp/env/jdbc/mysql_ebookshop");
+         if (pool == null)
+            throw new ServletException("Unknown DataSource 'jdbc/mysql_ebookshop'");
+      } catch (NamingException ex) {
+         Logger.getLogger(EntryServlet.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
     
     /**
@@ -92,7 +101,7 @@ public class QueryServlet extends HttpServlet {
             out.println("<h3>Please select an author or enter a search term!</h3>");
             out.println("<p><a href='start'>Back to Select Menu</a></p>");
          } else {
-            conn = DriverManager.getConnection(databaseURL, username, password);
+            conn = pool.getConnection();    //get a connection from the pool
             stmt = conn.createStatement();
  
             // Form a SQL command based on the param(s) present
@@ -166,7 +175,7 @@ public class QueryServlet extends HttpServlet {
          out.close();
          try {
             if (stmt != null) stmt.close();
-            if (conn != null) conn.close();
+            if (conn != null) conn.close(); //return connection to pool
          } catch (SQLException ex) {
             Logger.getLogger(QueryServlet.class.getName()).log(Level.SEVERE, null, ex);
          }

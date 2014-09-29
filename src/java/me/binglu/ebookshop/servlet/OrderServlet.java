@@ -8,8 +8,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.logging.*;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import javax.sql.DataSource;
 import me.binglu.ebookshop.InputFilter;
 
 /**
@@ -18,15 +21,21 @@ import me.binglu.ebookshop.InputFilter;
  */
 public class OrderServlet extends HttpServlet {
 
-    private String databaseURL, username, password;
+    private DataSource pool;    //DB connection pool
     
     @Override
     public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-        ServletContext context = config.getServletContext();
-        databaseURL = context.getInitParameter("databaseURL");
-        username = context.getInitParameter("username");
-        password = context.getInitParameter("password");
+      try {
+         // Create a JNDI Initial context to be able to lookup the DataSource
+         InitialContext ctx = new InitialContext();
+         // Lookup the DataSource, which will be backed by a pool
+         //   that the application server provides.
+         pool = (DataSource)ctx.lookup("java:comp/env/jdbc/mysql_ebookshop");
+         if (pool == null)
+            throw new ServletException("Unknown DataSource 'jdbc/mysql_ebookshop'");
+      } catch (NamingException ex) {
+         Logger.getLogger(EntryServlet.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }  
     
     /**
@@ -113,7 +122,7 @@ public class OrderServlet extends HttpServlet {
                 outBuf.append("<tr><td>Customer Phone Number:</td><td>").append(customerPhone).append("</td></tr></table>");
 
                 Class.forName("com.mysql.jdbc.Driver");
-                conn = DriverManager.getConnection(databaseURL, username, password);
+                conn = pool.getConnection();    //get connection from the pool
                 stmt = conn.createStatement();
                 // We shall manage our transaction (because multiple SQL statements issued)
                 conn.setAutoCommit(false);
@@ -203,7 +212,7 @@ public class OrderServlet extends HttpServlet {
                     stmt.close();
                 }
                 if (conn != null) {
-                    conn.close();
+                    conn.close();   //return connection to pool
                 }
             } catch (SQLException ex) {
                 Logger.getLogger(OrderServlet.class.getName()).log(Level.SEVERE, null, ex);
