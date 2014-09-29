@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
 <Context antiJARLocking="true" path="/ebookshop"/>
+-->
+<Context reloadable="true">
+  <!-- 
+    maxActive: Maximum number of dB connections in pool. Set to -1 for no limit.
+    maxIdle: Maximum number of idle dB connections to retain in pool. Set to -1 for no limit.
+    maxWait: Maximum milliseconds to wait for a dB connection to become available
+             Set to -1 to wait indefinitely.
+  -->
+  <Resource name="jdbc/mysql_ebookshop" auth="Container" type="javax.sql.DataSource"
+     maxActive="10" maxIdle="3" maxWait="100" removeAbandoned="true"
+     username="root" password="root" driverClassName="com.mysql.jdbc.Driver"
+     url="jdbc:mysql://localhost:3306/ebookshop" />
+</Context>
