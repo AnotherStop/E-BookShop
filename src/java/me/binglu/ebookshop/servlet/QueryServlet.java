@@ -14,6 +14,7 @@ import javax.servlet.ServletException;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.sql.DataSource;
+import me.binglu.ebookshop.ShoppingCart;
 
 /**
  *
@@ -126,7 +127,8 @@ public class QueryServlet extends HttpServlet {
                out.println("<p><a href='start'>Back to Select Menu</a></p>");
             } else {
                // Print the result in an HTML form inside a table
-               out.println("<form method='get' action='./order'>");
+               out.println("<form method='get' action='./cart'>");
+               out.println("<input type='hidden' name='todo' value='add' />");
                out.println("<table border='1' cellpadding='6'>");
                out.println("<tr>");
                out.println("<th>&nbsp;</th>");
@@ -134,6 +136,7 @@ public class QueryServlet extends HttpServlet {
                out.println("<th>TITLE</th>");
                out.println("<th>PRICE</th>");
                out.println("<th>QUANTITY</th>");
+               out.println("<th>IN STOCK</th>");
                out.println("</tr>");
  
                // ResultSet's cursor now pointing at first row
@@ -146,28 +149,35 @@ public class QueryServlet extends HttpServlet {
                   out.println("<td>" + rset.getString("title") + "</td>");
                   out.println("<td>$" + rset.getString("price") + "</td>");
                   out.println("<td><input type='text' size='3' value='1' name='quantity" + id + "' /></td>");
+                  out.println("<td>" + rset.getString("quantity") + "</td>");
                   out.println("</tr>");
                } while (rset.next());
-               out.println("</table><br />");
- 
-               // Ask for name, email and phone using text fields (arranged in a table)
-               out.println("<table>");
-               out.println("<tr><td>Enter your Name:</td>");
-               out.println("<td><input type='text' name='customer_name' /></td></tr>");
-               out.println("<tr><td>Enter your Email (user@host):</td>");
-               out.println("<td><input type='text' name='customer_email' /></td></tr>");
-               out.println("<tr><td>Enter your Phone Number (8-digit):</td>");
-               out.println("<td><input type='text' name='customer_phone' /></td></tr></table><br />");
- 
+               out.println("</table><br />");      
+               
                // Submit and reset buttons
-               out.println("<input type='submit' value='ORDER' />");
+               out.println("<input type='submit' value='Add to My Shopping Cart' />");
                out.println("<input type='reset' value='CLEAR' /></form>");
  
                // Hyperlink to go back to search menu
                out.println("<p><a href='start'>Back to Select Menu</a></p>");
+               
+               // Show "View Shopping Cart" if cart is not empty
+               HttpSession session = request.getSession(false); // check if session exists
+               if (session != null) {
+                  ShoppingCart cart;
+                  synchronized (session) {
+                     // Retrieve the shopping cart for this session, if any. Otherwise, create one.
+                     cart = (ShoppingCart) session.getAttribute("cart");
+                     if (cart != null && !cart.isEmpty()) {
+                        out.println("<p><a href='cart?todo=view'>View Shopping Cart</a></p>");
+                     }
+                  }
+               }
+               
+               out.println("</body></html>");
             }
          }
-         out.println("</body></html>");
+         
       } catch (SQLException ex) {
          out.println("<h3>Service not available. Please try again later!</h3></body></html>");
          Logger.getLogger(QueryServlet.class.getName()).log(Level.SEVERE, null, ex);
