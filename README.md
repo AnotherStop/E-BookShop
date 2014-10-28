@@ -4,10 +4,6 @@ Developing a primitive functional online bookstore. It's a self project and I'm 
 
 ##To Do
 
-- Pooling DB connection
-
-- Session management
-
 - User and Role management
 
 ---
@@ -29,4 +25,3 @@ Developing a primitive functional online bookstore. It's a self project and I'm 
 
 I upload the project folder to github directly. To run this project, corresponding databases is necessary. Please refer to `web.xml` to get more configuration information. 
 
-To help you import this project easily, I also upload a `.zip` file to this repo.
